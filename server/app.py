@@ -45,5 +45,67 @@ def most_expensive_baked_good():
     most_expensive_serialized = most_expensive.to_dict()
     return make_response( most_expensive_serialized,   200  )
 
+
+
+@app.route('/baked_goods', methods=['POST'])
+def create_baked_good():
+    data = request.form
+
+    name = data.get('name')
+    price = data.get('price')
+    bakery_id = data.get('bakery_id')
+
+    # Validate the required fields
+    if not (name and price and bakery_id):
+        return make_response(jsonify({"error": "Incomplete data. Please provide name, price, and bakery_id."}), 400)
+
+    # Create a new BakedGood instance
+    new_baked_good = BakedGood(name=name, price=price, bakery_id=bakery_id)
+
+    # Add to the database
+    db.session.add(new_baked_good)
+    db.session.commit()
+
+    # Return the created baked good's data as JSON
+    return make_response(jsonify(new_baked_good.to_dict()), 201)
+
+@app.route('/bakeries/<int:id>', methods=['PATCH'])
+def update_bakery(id):
+    # Retrieve the bakery from the database
+    bakery = Bakery.query.get(id)
+
+    if not bakery:
+        return make_response(jsonify({"error": f"Bakery with ID {id} not found."}), 404)
+
+    # Extract relevant data from the form
+    data = request.form
+    new_name = data.get('name')
+
+    # Update the bakery's name if provided
+    if new_name:
+        bakery.name = new_name
+
+    # Commit changes to the database
+    db.session.commit()
+
+    # Return the updated bakery's data as JSON
+    return make_response(jsonify(bakery.to_dict()), 200)
+
+@app.route('/baked_goods/<int:id>', methods=['DELETE'])
+def delete_baked_good(id):
+    # Retrieve the baked good from the database
+    baked_good = BakedGood.query.get(id)
+
+    if not baked_good:
+        return make_response(jsonify({"error": f"Baked Good with ID {id} not found."}), 404)
+
+    # Delete the baked good from the database
+    db.session.delete(baked_good)
+    db.session.commit()
+
+    # Return a JSON message confirming the deletion
+    return make_response(jsonify({"message": f"Baked Good with ID {id} deleted successfully."}), 200)
+
+
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
